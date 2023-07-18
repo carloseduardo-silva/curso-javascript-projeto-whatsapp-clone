@@ -1,4 +1,4 @@
-class cameraController{
+export class cameraController{
 
     constructor(videoEl){
 
@@ -9,14 +9,46 @@ class cameraController{
 
         }).then(stream =>{
 
+            this._stream = stream
             this._videoEl.src = URL.createObjectURL(stream);
             this._videoElplay()
 
         }).catch(err =>{
-            console.log(err + ' Certificate that you has a cam!')
+            console.log(err + ' Certificate that you have a cam!')
         })
 
     }
 
+    stop(){
+       //getTracks seleciona a camera/video/audio mas nao consegue e retorna undefined pois o pc nao possui camera/video. --> logo necessita ser tratado.
+        if(this._stream === undefined){
+            return console.log('Certificate that you have a cam!')
+
+        }
+        else{
+            this._stream.getTracks().forEach(track =>{
+                track.stop()
+            })}
+
+
+
+    }
+
+
+    takePicture(mimeType = 'image/png'){
+
+        let canvas = document.createElement('canvas')
+
+        canvas.setAttribute('height', this._videoEl.videoHeight)
+        canvas.setAttribute('width', this._videoEl.videoWidth)
+
+        let context = canvas.getContext('2d')
+
+        context.drawImage(this._videoEl, 0, 0, canvas.width, canvas.height)
+
+        return canvas.toDataURL(mimeType)
+
+
+    }
 
 }

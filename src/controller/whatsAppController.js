@@ -1,4 +1,8 @@
-class whatsAppController{
+import {cameraController} from './cameraController'
+import {Format} from './../util/format'
+import {documentPreviewController} from './documentPreviewController'
+
+export default class whatsAppController{
 
     constructor(){
 
@@ -224,11 +228,46 @@ class whatsAppController{
 
             this.el.panelCamera.removeClass('open')
             this.el.panelMessagesContainer.show()
+            this._camera.stop()
+
 
        })
 
        this.el.btnTakePicture.on('click', e=>{
-        console.log('diga x ')
+
+        console.log('diga x')
+
+        let dataUrl = this._camera.takePicture()
+        this.el.pictureCamera.src = dataUrl;
+        this.el.pictureCamera.show()
+        this.el.videoCamera.hide()
+        this.el.btnReshootPanelCamera.show()
+        this.el.containerTakePicture.hide()
+        this.el.containerSendPicture.show()
+
+       })
+
+        this.el.btnReshootPanelCamera.on('click', e=>{
+        this.el.pictureCamera.hide()
+        this.el.videoCamera.show()
+        this.el.btnReshootPanelCamera.hide()
+        this.el.containerTakePicture.show()
+        this.el.containerSendPicture.hide()
+
+
+       })
+
+       this.el.btnSendPicture.on('click', e=>{
+
+        console.log(this.el.pictureCamera.src + ' picture taked!')
+
+        this.el.pictureCamera.hide()
+        this.el.videoCamera.show()
+        this.el.btnReshootPanelCamera.hide()
+        this.el.containerTakePicture.show()
+        this.el.containerSendPicture.hide()
+        this.el.panelCamera.removeClass('open')
+        this.el.panelMessagesContainer.show()
 
        })
 
@@ -239,8 +278,64 @@ class whatsAppController{
         this.el.panelDocumentPreview.css({
             height: '103%'
         })
+        this.el.inputDocument.click()
 
        })
+
+       this.el.inputDocument.on('change', e=>{
+
+        if(this.el.inputDocument.files[0]){
+
+            let file =  this.el.inputDocument.files[0];
+
+            this._docPreviewController = new documentPreviewController(file);
+
+
+            this._docPreviewController.getPreviewData().then(result=>{
+
+                this.el.imgPanelDocumentPreview.src = result.src;
+                this.el.infoPanelDocumentPreview.innerHTML= result.info
+                this.el.imagePanelDocumentPreview.show()
+                this.el.filePanelDocumentPreview.hide()
+                console.log('ok', data);
+
+            }).catch(e =>{
+
+                console.log(file.type)
+                switch(file.type){
+
+                    case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+                        this.el.iconPanelDocumentPreview.className = 'jcxhw icon-doc-xls'
+
+                    break;
+
+                    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+                        this.el.iconPanelDocumentPreview.className = 'jcxhw icon-doc-doc'
+
+                    break;
+                    
+                    case"application/vnd.openxmlformats-officedocument.presentationml.presentation":
+                    this.el.iconPanelDocumentPreview.className = 'jcxhw icon-doc-ppt'
+                  
+                    break;
+
+                    default:
+                    this.el.iconPanelDocumentPreview.className = 'jcxhw icon-doc-generic'
+                    break;
+
+                }
+
+                this.el.filenamePanelDocumentPreview.innerHTML = file.name
+                this.el.imagePanelDocumentPreview.hide()
+                this.el.filePanelDocumentPreview.show()
+            })
+
+            
+        }
+
+
+       })
+
 
        this.el.btnClosePanelDocumentPreview.on('click', e=>{
         this.el.panelMessagesContainer.show()
