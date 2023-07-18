@@ -276,7 +276,8 @@ export default class whatsAppController{
         this.el.panelMessagesContainer.hide()
         this.el.panelDocumentPreview.addClass('open')
         this.el.panelDocumentPreview.css({
-            height: '103%'
+            height: '95%',
+            width:'100%'
         })
         this.el.inputDocument.click()
 
@@ -292,15 +293,16 @@ export default class whatsAppController{
 
 
             this._docPreviewController.getPreviewData().then(result=>{
-
+                console.log(result)
                 this.el.imgPanelDocumentPreview.src = result.src;
                 this.el.infoPanelDocumentPreview.innerHTML= result.info
                 this.el.imagePanelDocumentPreview.show()
                 this.el.filePanelDocumentPreview.hide()
-                console.log('ok', data);
+                
+               
 
             }).catch(e =>{
-
+                console.log(e)
                 console.log(file.type)
                 switch(file.type){
 
