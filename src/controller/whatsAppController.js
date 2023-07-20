@@ -2,16 +2,18 @@ import {cameraController} from './cameraController'
 import {Format} from './../util/format'
 import {documentPreviewController} from './documentPreviewController'
 import {audioController} from './audioController'
-import { Firebase } from '../util/fireBase'
+import { Firebase } from './../util/fireBase'
+import { User } from '../model/User'
 
 export default class whatsAppController{
 
     constructor(){
 
+        this._firebase = new Firebase()
+        this.initAuth();
        this.elementsProtoType();
        this.loadElements();
        this.initEvents();
-       this._firebase = new Firebase()
        this.testdb()
 
 
@@ -19,6 +21,32 @@ export default class whatsAppController{
     }
     testdb(){
         this._firebase.dbConnect()
+    }
+
+    initAuth(){
+        this._firebase.initAuth().then((response) =>{
+
+             
+            this._user = new User(response.user.email);
+
+            let userRef = User.findByEmail(response.user.email)
+
+            userRef.set({
+                name: response.user.displayName,
+                email: response.user.email,
+                photo: response.user.photoURL
+
+            })
+            
+            console.log('Usuario Logado com Sucesso', response)
+            this.el.appContent.css({
+                display:'flex'
+            })
+
+        }).catch(err =>{
+
+            console.log(err)
+        })
     }
 
 
