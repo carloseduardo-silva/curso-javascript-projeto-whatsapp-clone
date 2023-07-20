@@ -1,6 +1,8 @@
 import {cameraController} from './cameraController'
 import {Format} from './../util/format'
 import {documentPreviewController} from './documentPreviewController'
+import {audioController} from './audioController'
+import { Firebase } from '../util/fireBase'
 
 export default class whatsAppController{
 
@@ -9,9 +11,14 @@ export default class whatsAppController{
        this.elementsProtoType();
        this.loadElements();
        this.initEvents();
+       this._firebase = new Firebase()
+       this.testdb()
 
 
       
+    }
+    testdb(){
+        this._firebase.dbConnect()
     }
 
 
@@ -366,14 +373,25 @@ export default class whatsAppController{
         this.el.recordMicrophone.show()
         this.startTimerAudio()
 
+        this._audioController = new audioController()
+
+        this._audioController.on('rady', (musica)=>{
+
+            console.log('ready event', musica)
+            this._audioController.startRecorder()
+        });
+
+
        })
 
        this.el.btnCancelMicrophone.on('click', e=>{
+        this._audioController.stopRecorder()
         this.closeRecordMicrophone()
 
        })
 
        this.el.btnFinishMicrophone.on('click', e=>{
+        this._audioController.stopRecorder()
         this.closeRecordMicrophone()
         
        })
