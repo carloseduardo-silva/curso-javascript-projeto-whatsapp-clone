@@ -23,7 +23,7 @@ export class classEvent{
 
         if(this._events[eventName] instanceof Array){
 
-            this._events[eventName].foreach(fn =>{
+            this._events[eventName].forEach(fn =>{
 
                 fn.apply(null, args)
 

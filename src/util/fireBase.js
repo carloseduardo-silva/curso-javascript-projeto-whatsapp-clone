@@ -2,7 +2,6 @@ export class Firebase {
 
     constructor(){
 
-
         this.dbConnect();
         this.initAuth()
     }
