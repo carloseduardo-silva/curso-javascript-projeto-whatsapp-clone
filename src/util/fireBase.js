@@ -4,6 +4,7 @@ export class Firebase {
 
         this.dbConnect();
         this.initAuth()
+        
     }
 
      

@@ -197,37 +197,51 @@ export default class whatsAppController{
        
             let scrollTop = this.el.panelMessagesContainer.scrollTop;
 
-            let scrollMax = (this.el.panelMessagesContainer.scrollHeight - this.el.panelMessagesContainer.offsetHeight)
+            let scrollMax = (this.el.panelMessagesContainer.scrollHeight - this.el.panelMessagesContainer.offsetHeight -1)
 
             let autoScroll = (scrollTop >= scrollMax)
 
             docs.forEach(doc =>{
 
+                //object carregando a message e seus parametros
                 let data = doc.data();
                 data.id = doc.id;
-                console.log(data)
-
                 
-                if(!this.el.panelMessagesContainer.querySelector('#_' + data.id)){
+                let message = new Message();
+                message.fromJSON(data)
+                
+                let msgEl = this.el.panelMessagesContainer.querySelector('#_' + data.id)
+
+                let me = (data.from === this._user.email);
+
+                //caso nao estiver no painel ele ira criar o layout dela e appendchild no panel
+                if(!msgEl){
+
+                    if (!me){
+
+                        doc.ref.set({
+                            status:"read"
+                        }, {
+                            merge:true
+                        })
+
+                    }
                     
-                  
+                    this._view = message.getViewEl(me);
 
+                   
+                    this.el.panelMessagesContainer.appendChild(this._view);
 
-                    let message = new Message();
-    
-                    message.fromJSON(data)
+                 
+            
+               } else if(me){
 
-                    let me = (data.from === this._user.email);
-                    
-                    let view = message.getViewEl(me);
-    
-                    this.el.panelMessagesContainer.appendChild(view);
-                        
-                    
+                this._view.querySelector('.message-status').innerHTML = message.getStatusViewEl().outerHTML;
 
-               }
+            }
 
             })
+
             if(autoScroll){
 
                 this.el.panelMessagesContainer.scrollTop =  (this.el.panelMessagesContainer.scrollHeight - this.el.panelMessagesContainer.offsetHeight)
@@ -343,11 +357,21 @@ export default class whatsAppController{
         this.el[Format.getCamelCase(element.id)] = element;
 
        })}
-
     
    
     initEvents(){
       
+        this.el.inputSearchContacts.on('keyup', e =>{
+
+            if(this.el.inputSearchContacts.value.length > 0){
+                this.el.inputSearchContactsPlaceholder.hide();}
+            else{
+                this.el.inputSearchContactsPlaceholder.show()
+            }
+
+            this._user.getContacts(this.el.inputSearchContacts.value)
+        })
+
 
         this.el.myPhoto.on('click', e=>{
 
@@ -442,8 +466,6 @@ export default class whatsAppController{
             )
 
         })
-
-        
 
        })
 
