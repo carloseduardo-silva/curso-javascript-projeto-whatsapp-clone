@@ -14,7 +14,7 @@ export class Firebase {
             apiKey: "AIzaSyCjBxXHifuF9_UkSk0yaPqFHkqmwxtacIc",
             authDomain: "whatsapp-clone-f87d8.firebaseapp.com",
             projectId: "whatsapp-clone-f87d8",
-            storageBucket: "whatsapp-clone-f87d8.appspot.com",
+            storageBucket: "gs://whatsapp-clone-f87d8.appspot.com",
             messagingSenderId: "169531466935",
             appId: "1:169531466935:web:ab1ffa544ca3c81366d932"
           };
@@ -44,7 +44,7 @@ export class Firebase {
         static hd(){
             
             //cloud, firebaseStorage -> arquivos
-            return firebase.firestorage();
+            return firebase.storage();
             
         }
         

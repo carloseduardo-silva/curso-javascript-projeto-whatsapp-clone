@@ -6,6 +6,7 @@ import { Firebase } from './../util/fireBase'
 import { User } from '../model/User'
 import{ Chat } from  '../model/Chat'
 import{ Message } from  '../model/Message'
+import { NetworkPdfManager } from 'pdfjs-dist/build/pdf.worker'
 
 export default class whatsAppController{
 
@@ -235,6 +236,9 @@ export default class whatsAppController{
                  
             
                } else if(me){
+                //arrumar aqui -> ao enviar uma msg por um user1, e tentar mandar outra msg por outro user2 = ERROR, conflito = esta considerando msg de 1 como msg2 procurando o statusmsg sendo que nao há status para msg de outros.
+                console.log(this._view)
+                console.log(msgEl)
 
                 this._view.querySelector('.message-status').innerHTML = message.getStatusViewEl().outerHTML;
 
@@ -495,12 +499,13 @@ export default class whatsAppController{
 
        this.el.inputPhoto.on('change', e=>{
 
-            console.log(this.el.inputPhoto.files)
 
             let arr = [...this.el.inputPhoto.files]
             
             arr.forEach(file =>{
-            console.log(file)
+
+                Message.sendImage(this._contactActive.chatId, this._user.email, file);
+               
 
             })
 
@@ -553,17 +558,54 @@ export default class whatsAppController{
 
        this.el.btnSendPicture.on('click', e=>{
 
-        console.log(this.el.pictureCamera.src + ' picture taked!')
+        this.el.btnSendPicture.disabled = true
+        let regex = /^data:(.+);base64,(.*)$/
+        let result = this.el.pictureCamera.src.match(regex)
+        let mimeType = result[1]
+        let ext = mimeType.split('/')[1]
+        let filename = `camera${Date.now()}.${ext}`
+        
+        let picture = new Image();
+            picture.src = this.el.pictureCamera.src;
+            picture.onload = () => {
 
-        this.el.pictureCamera.hide()
-        this.el.videoCamera.show()
-        this.el.btnReshootPanelCamera.hide()
-        this.el.containerTakePicture.show()
-        this.el.containerSendPicture.hide()
-        this.el.panelCamera.removeClass('open')
-        this.el.panelMessagesContainer.show()
+                let canvas = document.createElement('canvas');
+                let context = canvas.getContext('2d');
 
-       })
+                canvas.setAttribute('width', picture.width);
+                canvas.setAttribute('height', picture.height);
+
+                context.translate(picture.width, 0);
+                context.scale(-1, 1);
+                context.drawImage(picture, 0, 0, canvas.width, canvas.height);
+
+                
+                fetch(canvas.toDataURL(mimeType))
+                    .then(res =>{return res.arrayBuffer()})
+                    .then( buffer =>{return new File([buffer], filename, {type: mimeType})
+                    .then(file =>{
+                        Message.sendImage(this._contactActive.chatId, this._user.email, file)
+
+                        this.el.btnSendPicture.disabled = false
+                        
+                        this._camera.stop();
+                        this.el.btnReshootPanelCamera.hide();
+                        this.el.pictureCamera.hide();
+                        this.el.videoCamera.show();
+                        this.el.containerSendPicture.hide();
+                        this.el.containerTakePicture.show();
+                        this.el.panelMessagesContainer.show();
+                        this.el.btnSendPicture.disabled = false;
+
+                })
+                })
+
+            };
+
+        });
+
+
+       
 
        this.el.btnAttachDocument.on('click', e=>{
 
@@ -639,7 +681,13 @@ export default class whatsAppController{
        })
 
        this.el.btnSendDocument.on('click', e=>{
-        console.log('enviando document ...')
+        let file = this.el.inputDocument.files[0]
+        let base64 = this.el.imgPanelDocumentPreview.src
+
+        Message.sendDocument(this._contactActive.chatId, 
+            this._user.email, 
+            file,
+            base64)
 
 
        })

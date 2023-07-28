@@ -1,6 +1,7 @@
 import { Model } from "./Model";
 import { Firebase } from "../util/fireBase"
 import { Format } from "../util/format"
+import { Base64 } from "../util/base64"
 
 export class Message extends Model{
 
@@ -54,6 +55,93 @@ export class Message extends Model{
         return this._data.status = value;
     }
 
+    static upload(file){
+
+        return new Promise((s, f)=>{
+
+            let updloadTask = Firebase.hd().ref(from).child(Date.now() + '_' + file.name).put(file)
+
+            updloadTask.on("state_changed", (e)=>{
+                console.info(e)
+             
+            }, err =>{
+    
+               f(err)
+    
+            }, ()=>{
+                    s(updloadTask.snapshot)
+            });
+        })
+
+
+    }
+
+    static sendDocument(chatId, from, file, preview){
+
+        Message.send(chatId, from, 'document').then(msgRef =>{
+    
+            Base64.toFile(preview).then(filePreview =>{
+
+                Message.upload(file).then(snapshot =>{
+    
+                    snapshot.ref.getDownloadURL().then(downloadURL =>{
+    
+                       let downloadFile = downloadURL
+    
+                       Message.upload(filePreview).then(snapshot2 =>{
+    
+                        snapshot2.ref.getDownloadURL().then(downloadURL2 =>{
+        
+                           let downloadPreview = downloadURL2
+        
+                            msgRef.set({
+                                content:downloadFile,
+                                preview: downloadPreview,
+                                filename: file.name,
+                                size: file.size,
+                                fileType: file.type,
+                                status: 'sent'
+                            }, {
+                                merge:true
+                            })
+                        }); 
+                     }) ;
+                    }); 
+                }) ;
+    
+    
+            })
+
+
+        })
+
+      
+    }
+
+    static sendImage(chatId, from, file){
+
+        return new Promise((s, f)=>{
+
+            Message.upload(file).then(snapshot =>{
+
+                snapshot.ref.getDownloadURL().then(downloadURL =>{
+
+                    Message.send(chatId, 
+                        from, 
+                        "image", 
+                        downloadURL
+                        ).then(() =>{
+
+                            s()
+
+                        });
+
+                }); 
+            }) ;
+        });
+         
+    }
+
     static send(chatId, from, type, content){
 
         return new Promise((s, f)=>{
@@ -81,7 +169,7 @@ export class Message extends Model{
      }
 
 
-         static getRef(chatId){
+    static getRef(chatId){
 
         return Firebase.db().collection('/chats')
         .doc(chatId)
@@ -164,14 +252,10 @@ export class Message extends Model{
                                             </div>
                                         </div>
                                     </div>
-                                    <img src="#" class="_1JVSX message-photo" style="width: 100%; display:none">
+                                    <img src="${this.content}" class="_1JVSX message-photo" style="width: 100%; display:none">
                                     <div class="_1i3Za"></div>
                                 </div>
-                                <div class="message-container-legend">
-                                    <div class="_3zb-j ZhF0n">
-                                        <span dir="ltr" class="selectable-text invisible-space copyable-text message-text">Texto da foto</span>
-                                    </div>
-                                </div>
+                               
                                 <div class="_2TvOE">
                                     <div class="_1DZAH text-white" role="button">
                                         <span class="message-time">${Format.timeStampToTime(this.timeStamp)}</span>
@@ -191,7 +275,23 @@ export class Message extends Model{
                     </div>
             
                     
-             `
+             `;
+
+             let messagephotoEl = div.querySelector('.message-photo')
+ 
+            messagephotoEl.on('load', e=>{
+
+                messagephotoEl.show()
+                div.querySelector('._3v3PK').css({
+                    height:'auto'
+                })
+                div.querySelector('._34Olu').hide()
+                
+
+
+
+
+            }) 
             break
 
             case 'document':
