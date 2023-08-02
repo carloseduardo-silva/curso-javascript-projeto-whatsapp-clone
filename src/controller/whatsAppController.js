@@ -6,7 +6,9 @@ import { Firebase } from './../util/fireBase'
 import { User } from '../model/User'
 import{ Chat } from  '../model/Chat'
 import{ Message } from  '../model/Message'
-import { NetworkPdfManager } from 'pdfjs-dist/build/pdf.worker'
+import { Base64 } from "../util/base64"
+import { ContactsController } from './contactsController'
+import { Upload } from "../util/upload";
 
 export default class whatsAppController{
 
@@ -119,7 +121,7 @@ export default class whatsAppController{
                         <span dir="auto" title="${contact.name}" class="_1wjpf">${contact.name}</span>
                     </div>
                     <div class="_3Bxar">
-                        <span class="_3T2VG">${contact.lastMessageTime}</span>
+                        <span class="_3T2VG">${Format.timeStampToTime(contact.lastMessageTime)}</span>
                     </div>
                 </div>
                 <div class="_1AwDx">
@@ -134,7 +136,7 @@ export default class whatsAppController{
                                     </svg>
                                 </span>
                             </div>
-                            <span dir="ltr" class="_1wjpf _3NFp9">${contact.LastMessage}</span>
+                            <span dir="ltr" class="_1wjpf _3NFp9">${contact.lastMessage}</span>
                             <div class="_3Bxar">
                                 <span>
                                     <div class="_15G96">
@@ -192,7 +194,7 @@ export default class whatsAppController{
             display:'flex'
         })
 
-        this.el.panelMessagesContainer.innerHTML = '';
+        
 
         Message.getRef(this._contactActive.chatId).orderBy('timeStamp').onSnapshot(docs =>{
        
@@ -201,6 +203,8 @@ export default class whatsAppController{
             let scrollMax = (this.el.panelMessagesContainer.scrollHeight - this.el.panelMessagesContainer.offsetHeight -1)
 
             let autoScroll = (scrollTop >= scrollMax)
+
+            this.el.panelMessagesContainer.innerHTML = '';
 
             docs.forEach(doc =>{
 
@@ -214,9 +218,15 @@ export default class whatsAppController{
                 let msgEl = this.el.panelMessagesContainer.querySelector('#_' + data.id)
 
                 let me = (data.from === this._user.email);
-
+                
+                this._view = message.getViewEl(me);
                 //caso nao estiver no painel ele ira criar o layout dela e appendchild no panel
                 if(!msgEl){
+
+
+                   
+                    this.el.panelMessagesContainer.appendChild(this._view);
+
 
                     if (!me){
 
@@ -226,23 +236,45 @@ export default class whatsAppController{
                             merge:true
                         })
 
+                    } 
+                    else if(me){
+                     
+
+                        this._view.querySelector('.message-status').innerHTML = message.getStatusViewEl().outerHTML;
+        
                     }
                     
-                    this._view = message.getViewEl(me);
+               } 
 
-                   
-                    this.el.panelMessagesContainer.appendChild(this._view);
+               if(message.type === 'contact'){
 
-                 
-            
-               } else if(me){
-                //arrumar aqui -> ao enviar uma msg por um user1, e tentar mandar outra msg por outro user2 = ERROR, conflito = esta considerando msg de 1 como msg2 procurando o statusmsg sendo que nao há status para msg de outros.
-                console.log(this._view)
-                console.log(msgEl)
+                this._view.querySelector('.btn-message-send').on('click',e=>{
+                console.log("Send a Message!")
 
-                this._view.querySelector('.message-status').innerHTML = message.getStatusViewEl().outerHTML;
 
-            }
+                Chat.createIfNotExists(this._user.email, message.content.email).then(chat =>{
+    
+                    let contact = new User(message.content.email)
+    
+                    contact.on('datachange', data =>{
+    
+                        contact.chatId = chat.id
+    
+                        this._user.addContact(contact)
+    
+                        this._user.chatId = chat.id
+    
+                        contact.addContact(this._user)
+                        
+                        this.setActiveChat(contact)
+                    })
+                })
+
+
+            })
+
+
+               }
 
             })
 
@@ -410,6 +442,26 @@ export default class whatsAppController{
 
        this.el.photoContainerEditProfile.on('click', e=>{
             this.el.inputProfilePhoto.click()
+       })
+
+       this.el.inputProfilePhoto.on('change', e=>{
+
+        if(this.el.inputProfilePhoto.files.length > 0){
+
+            let file =  this.el.inputProfilePhoto.files[0]
+
+            Upload.send(file, this._user.email).then(snapshot =>{
+                snapshot.ref.getDownloadURL().then(downloadURL =>{
+                    this._user.photo = downloadURL
+                    this._user.save().then( ()=>{
+                        this.el.btnClosePanelEditProfile.click()
+                    })
+                })
+
+            })
+        }
+
+
        })
 
        this.el.inputNamePanelEditProfile.on('keypress', e=>{
@@ -681,25 +733,55 @@ export default class whatsAppController{
        })
 
        this.el.btnSendDocument.on('click', e=>{
+
         let file = this.el.inputDocument.files[0]
         let base64 = this.el.imgPanelDocumentPreview.src
 
-        Message.sendDocument(this._contactActive.chatId, 
-            this._user.email, 
-            file,
-            base64)
+        if(file.type === 'application/pdf'){
+
+            Base64.toFile(base64).then(filePreview =>{
+
+
+                Message.sendDocument(this._contactActive.chatId, 
+                    this._user.email, 
+                    file,
+                    filePreview, this.el.infoPanelDocumentPreview.innerHTML)
+
+             })
+
+
+
+        } else{
+
+            Message.sendDocument(this._contactActive.chatId, 
+                this._user.email, 
+                file)
+        }
+
+        this.el.btnClosePanelDocumentPreview.click()
 
 
        })
 
        this.el.btnAttachContact.on('click', e=>{
 
-        this.el.modalContacts.show()
+     
+        this._contactsController = new ContactsController(this.el.modalContacts, this._user)
+
+        this._contactsController.on('select', contact =>{
+
+            Message.sendContact(this._contactActive.chatId, this._user.email, contact)
+
+        })
+
+        this._contactsController.open()
 
        })
 
        this.el.btnCloseModalContacts.on('click', e=>{
-        this.el.modalContacts.hide()
+
+        this._contactsController.hide()
+     
 
        })
 
