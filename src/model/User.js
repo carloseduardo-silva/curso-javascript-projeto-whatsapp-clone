@@ -42,6 +42,13 @@ export class User extends Model{
         this._data.chatId = value
     }
 
+    get lastMsg(){
+        return this._data.lastMsg
+    }
+    set lastMsg(value){
+        this._data.lastMsg = value
+    }
+
     getById(id){
 
         return new Promise((resolve, reject) =>{

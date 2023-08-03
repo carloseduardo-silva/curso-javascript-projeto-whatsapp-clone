@@ -12,22 +12,82 @@ import { Upload } from "../util/upload";
 
 export default class whatsAppController{
 
-    constructor(){
-
+    constructor(){ 
+        
+      
+       this._active = true
        this._firebase = new Firebase()
        this.initAuth();
-      
        this.elementsProtoType();
        this.loadElements();
        this.initEvents();
-       this.testdb()
+       this.testdb();
+       this.checkNotifications();
+
 
 
       
     }
 
+    checkNotifications(){
+
+        if(typeof Notification === 'function'){
+
+            if(Notification.permission != 'granted'){
+
+                this.el.alertNotificationPermission.show()
+
+            }
+            else{
+                this.el.alertNotificationPermission.hide()
+            }
+
+            this.el.alertNotificationPermission.on('click', e =>{
+
+                Notification.requestPermission(permission =>{
+
+                    if(permission === 'granted'){
+
+                        this.el.alertNotificationPermission.hide();
+                        console.info('notificações permitidas')
+
+                    }
+                })
+
+            })
+
+        }
+
+    }
+
+    notification(data){
+
+        if(Notification.permission === 'granted' && !this._active){
+
+            let n = new Notification(this._contactActive.name, {
+                icon: this._contactActive.photo,
+                body: data.content
+            })
+
+            let sound = new Audio('./audio/alert.mp3')
+
+            sound.currentTime = 0
+            sound.play()
+
+            setTimeout(() =>{n.close(), console.log('fechei')}, 5000)
+
+        }
+
+    }
+
     testdb(){
         this._firebase.dbConnect()
+    }
+
+    getLastMessageFromFb(contact){
+
+        Message.getContactsRef(contact.email)
+
     }
   
 
@@ -65,6 +125,7 @@ export default class whatsAppController{
             this._user.name = response.user.displayName
             this._user.email = response.user.email
             this._user.photo = response.user.photoURL
+            this._user.lastMsg = 'teste'
 
             this._user.save().then(()=>{
 
@@ -93,7 +154,26 @@ export default class whatsAppController{
 
         docs.forEach(doc =>{
 
+
             let contact = doc.data()
+
+            //Tentando pegar as mensagens dos usuarios no firebase antes de abrir a conversa de um usuario, carregando elas logo após o carregamento da lista de contatos.
+
+            Message.getRef(contact.chatId).orderBy('timeStamp').onSnapshot(docs =>{
+                docs.forEach(doc =>{
+                    //pegando objeto das mensagens 
+                    console.log(doc.data())
+                })
+            })
+           
+         
+
+            console.log(lastMsgObject)
+
+            Object.assign(contact, lastMsgObject)
+            console.log(contact)
+          
+
 
             let div = document.createElement('div')
 
@@ -156,7 +236,7 @@ export default class whatsAppController{
                 img.show()
 
             }
-            // abrir conversa c/ determinado contato
+            // open the chat, with a target contact
             div.on('click', e=>{    
 
                 this.setActiveChat(contact)
@@ -194,10 +274,11 @@ export default class whatsAppController{
             display:'flex'
         })
 
-        
+        this._messsagesReceived = []
 
+        
         Message.getRef(this._contactActive.chatId).orderBy('timeStamp').onSnapshot(docs =>{
-       
+            // scroll configs
             let scrollTop = this.el.panelMessagesContainer.scrollTop;
 
             let scrollMax = (this.el.panelMessagesContainer.scrollHeight - this.el.panelMessagesContainer.offsetHeight -1)
@@ -206,9 +287,13 @@ export default class whatsAppController{
 
             this.el.panelMessagesContainer.innerHTML = '';
 
+            
+
             docs.forEach(doc =>{
 
-                //object carregando a message e seus parametros
+                // doc = message, loading the HTML messages
+                console.log(doc.data().content)
+              
                 let data = doc.data();
                 data.id = doc.id;
                 
@@ -218,13 +303,21 @@ export default class whatsAppController{
                 let msgEl = this.el.panelMessagesContainer.querySelector('#_' + data.id)
 
                 let me = (data.from === this._user.email);
-                
+
+                if(!me && this._messsagesReceived.filter(id =>{ return (id === data.id)}).length === 0){
+
+                    console.log('notificação')
+                    this.notification(data)
+                    this._messsagesReceived.push(data.id)
+
+                }
+
                 this._view = message.getViewEl(me);
-                //caso nao estiver no painel ele ira criar o layout dela e appendchild no panel
+
+                //checking if the message is already in the panel, if not will apend it. + checking if is a message from me or a sended message by other user.
                 if(!msgEl){
 
 
-                   
                     this.el.panelMessagesContainer.appendChild(this._view);
 
 
@@ -236,6 +329,8 @@ export default class whatsAppController{
                             merge:true
                         })
 
+                    
+
                     } 
                     else if(me){
                      
@@ -246,12 +341,11 @@ export default class whatsAppController{
                     
                } 
 
+               //contact anexado
                if(message.type === 'contact'){
 
                 this._view.querySelector('.btn-message-send').on('click',e=>{
-                console.log("Send a Message!")
-
-
+                
                 Chat.createIfNotExists(this._user.email, message.content.email).then(chat =>{
     
                     let contact = new User(message.content.email)
@@ -396,6 +490,19 @@ export default class whatsAppController{
     
    
     initEvents(){
+
+        window.addEventListener('focus', e =>{
+
+            this._active = true;
+
+        })
+
+        window.addEventListener('blur', e =>{
+
+            this._active = false;
+            
+        })
+
       
         this.el.inputSearchContacts.on('keyup', e =>{
 

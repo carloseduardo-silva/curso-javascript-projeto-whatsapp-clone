@@ -238,6 +238,28 @@ export class Message extends Model{
 
     }
 
+    static getContactsRef(me){
+        return Firebase.db().collection('/users')
+        .doc(me)
+        .collection('contacts')
+
+    }
+
+    static getLastMsg(chatId, from){
+        
+        Firebase.db().collection('/chats')
+        .doc(chatId)
+        .collection('messages').orderBy('timeStamp').onSnapshot(docs =>{
+            docs.forEach( doc => {
+                if (doc.data().from === from){
+                    return {lastMessage:doc.data(),
+                            lastMessageTime:doc.data()}
+                }
+            });
+        })
+
+    }
+
 
     //Retorna o layout/HTML elements de acordo com o tipo de msg enviada
     getViewEl(me = true){
