@@ -167,10 +167,10 @@ export default class whatsAppController{
             })
            
          
-
+            let lastMsgObject; // futuro obj com lastMessage e lastMessageTime
             console.log(lastMsgObject)
 
-            Object.assign(contact, lastMsgObject)
+            //Object.assign(contact, lastMsgObject)
             console.log(contact)
           
 
