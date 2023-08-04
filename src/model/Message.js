@@ -213,13 +213,14 @@ export class Message extends Model{
         }).then(result =>{
             
             let docRef = result.parent.doc(result.id)
+            
 
          docRef.set({
              status:'sent'
          }, {
              merge:true
          }).then(()=>{
-
+             
              s(docRef);
          });
         })
@@ -245,20 +246,7 @@ export class Message extends Model{
 
     }
 
-    static getLastMsg(chatId, from){
-        
-        Firebase.db().collection('/chats')
-        .doc(chatId)
-        .collection('messages').orderBy('timeStamp').onSnapshot(docs =>{
-            docs.forEach( doc => {
-                if (doc.data().from === from){
-                    return {lastMessage:doc.data(),
-                            lastMessageTime:doc.data()}
-                }
-            });
-        })
 
-    }
 
 
     //Retorna o layout/HTML elements de acordo com o tipo de msg enviada

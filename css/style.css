@@ -51,6 +51,9 @@ ol,ul{
 blockquote,q{
     quotes:none
 }
+#messages-count{
+    display: none;
+}
 blockquote:after,blockquote:before,q:after,q:before{
     content:'';
     content:none
